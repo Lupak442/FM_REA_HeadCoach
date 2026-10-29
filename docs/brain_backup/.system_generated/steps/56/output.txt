@@ -1,0 +1,4 @@
+Command exited with code 0.
+
+Command output:
+Initialized empty Git repository in C:/GProjects/FM_REA_HeadCoach/.git/

@@ -1,0 +1,6 @@
+{
+  "summary":  "FM_REA_HeadCoach 전체 시스템 아키텍처(Pymem 실시간 메모리 추출 + FastAPI + React 대시보드) 및 3대 핵심 분석 알고리즘(공간 공백 분석 수식, 1:1 매치업 유혈 지점 확률 모델, 전술 지시 자동 생성 규칙 엔진) 상세 설계 문서입니다.",
+  "updatedAt":  "2026-10-29T07:06:39.343888700Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

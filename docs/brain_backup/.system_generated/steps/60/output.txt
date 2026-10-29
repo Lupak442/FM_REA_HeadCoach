@@ -1,0 +1,18 @@
+Command exited with code 0.
+
+Command output:
+warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/engine/effective_stats.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/engine/matchup_matrix.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/engine/rule_engine.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/engine/spatial_analyzer.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/memory/offsets.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/memory/reader.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/memory/simulator.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/models/match_state.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/requirements.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/ARCHITECTURE_AND_LOGIC.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'run_dashboard.bat', LF will be replaced by CRLF the next time Git touches it

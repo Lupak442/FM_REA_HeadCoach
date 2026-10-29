@@ -1,0 +1,6 @@
+Command exited with code 0.
+
+Command output:
+To https://github.com/Lupak442/FM_REA_HeadCoach.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.

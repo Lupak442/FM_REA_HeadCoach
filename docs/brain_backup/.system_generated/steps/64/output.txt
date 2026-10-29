@@ -1,0 +1,20 @@
+Command exited with code 0.
+
+Command output:
+[master (root-commit) 61bb059] feat: initial architecture, tactical analysis engine, pymem reader, and web dashboard
+ 15 files changed, 2725 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 README.md
+ create mode 100644 backend/app/engine/effective_stats.py
+ create mode 100644 backend/app/engine/matchup_matrix.py
+ create mode 100644 backend/app/engine/rule_engine.py
+ create mode 100644 backend/app/engine/spatial_analyzer.py
+ create mode 100644 backend/app/main.py
+ create mode 100644 backend/app/memory/offsets.json
+ create mode 100644 backend/app/memory/reader.py
+ create mode 100644 backend/app/memory/simulator.py
+ create mode 100644 backend/app/models/match_state.py
+ create mode 100644 backend/requirements.txt
+ create mode 100644 docs/ARCHITECTURE_AND_LOGIC.md
+ create mode 100644 frontend/index.html
+ create mode 100644 run_dashboard.bat
