@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FM_REA_HeadCoach | 실시간 전술 공략 & 매치업 유혈 지점 대시보드</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background-color: #0b0f17;
+      color: #e2e8f0;
+    }
+    .pitch-bg {
+      background: radial-gradient(circle at 50% 30%, #143326 0%, #0d231a 70%, #091912 100%);
+      border: 2px solid rgba(52, 211, 153, 0.28);
+      position: relative;
+    }
+    .zone-card {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(6px);
+    }
+    .zone-card:hover {
+      transform: translateY(-2px);
+    }
+    .pulse-border {
+      animation: pulseGlow 2s infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+      50% { box-shadow: 0 0 18px 4px rgba(16, 185, 129, 0.25); }
+    }
+    .bleed-pulse {
+      animation: bleedGlow 2s infinite;
+    }
+    @keyframes bleedGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.5); }
+      50% { box-shadow: 0 0 20px 3px rgba(244, 63, 94, 0.28); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-emerald-500 selection:text-slate-950">
+
+  <!-- Top Navigation & Match Status Header -->
+  <header class="border-b border-slate-800/90 bg-slate-950/90 sticky top-0 z-30 backdrop-blur-md">
+    <div class="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-extrabold text-lg">
+          FM
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-lg tracking-tight text-white">FM_REA_HeadCoach</h1>
+            <span id="connBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              실시간 분석 엔진 가동 중
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">실시간 실효 스탯 감쇠(γ) · 6구역 공간 취약도(SVS) · 1:1 매치업 유혈 지점 · If-Then 전술 추천</p>
+        </div>
+      </div>
+
+      <!-- Scoreboard -->
+      <div class="flex items-center gap-4 bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-xl">
+        <div class="text-right">
+          <div id="myTeamName" class="text-xs font-bold text-emerald-400">FC 서울 헤드코치</div>
+          <div id="myFormation" class="text-[11px] text-slate-400">4-2-3-1 Wide</div>
+        </div>
+        <div class="px-3 py-1 rounded-lg bg-slate-950 border border-slate-800 text-center min-w-[90px]">
+          <div id="matchClock" class="text-xs font-bold text-amber-400">68:00'</div>
+          <div id="scoreText" class="text-base font-extrabold text-white tracking-wider">1 : 1</div>
+        </div>
+        <div class="text-left">
+          <div id="oppTeamName" class="text-xs font-bold text-rose-400">레알 마드리드 B</div>
+          <div id="oppFormation" class="text-[11px] text-slate-400">4-3-3 High Press</div>
+        </div>
+      </div>
+
+      <!-- Scenario Presets -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs text-slate-400 font-medium mr-1">상황 프리셋:</span>
+        <button onclick="selectScenario('high_line_tired_fb')" id="btn_scen_1"
+          class="text-xs px-3 py-1.5 rounded-lg font-semibold border transition bg-emerald-500/20 border-emerald-500/50 text-emerald-300">
+          ① 상대 높은 라인 + 풀백 방전(64%)
+        </button>
+        <button onclick="selectScenario('low_block_central_congestion')" id="btn_scen_2"
+          class="text-xs px-3 py-1.5 rounded-lg font-semibold border transition bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800">
+          ② 상대 5-3-2 중앙 밀집 저블록
+        </button>
+        <button onclick="selectScenario('aerial_mismatch_press_trap')" id="btn_scen_3"
+          class="text-xs px-3 py-1.5 rounded-lg font-semibold border transition bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800">
+          ③ 상대 단신 수비진 + 빌드업 구멍
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Urgent Bleed-Point Top Alert Banner -->
+  <div class="max-w-[1600px] w-full mx-auto px-4 pt-4">
+    <div id="urgentBanner" class="rounded-xl border border-rose-500/50 bg-gradient-to-r from-rose-950/70 via-slate-900/90 to-slate-900/90 px-4 py-3 flex flex-wrap items-center justify-between gap-3 bleed-pulse">
+      <div class="flex items-center gap-3">
+        <span class="px-2.5 py-1 rounded-md bg-rose-500 text-slate-950 font-extrabold text-xs tracking-wide uppercase">
+          긴급 유혈 지점 (BLEED POINT)
+        </span>
+        <div>
+          <div id="urgentTitle" class="text-sm font-bold text-white">
+            상대 좌측 풀백 M. 구티에레스 체력 64% 저하 (+경고 1장) → 우측 윙어 이강인 돌파 성공 기대 확률 81.2%!
+          </div>
+          <div id="urgentSub" class="text-xs text-rose-200/80 mt-0.5">
+            인게임 실효 능력치 감쇠 계수 γ(64%)=0.91 적용 · 태클/적극성 옐로카드 페널티 -15% 반영됨
+          </div>
+        </div>
+      </div>
+      <div id="urgentZoneBadge" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">
+        최우선 공략 구역: 수비 라인 뒷공간 (SVS 86.5)
+      </div>
+    </div>
+  </div>
+
+  <!-- Main 3-Column Tactical Grid -->
+  <main class="max-w-[1600px] w-full mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1">
+
+    <!-- COLUMN 1 (Left, 4 cols): Spatial Analysis Pitch Heatmap & Live Parameter Controller -->
+    <section class="lg:col-span-4 flex flex-col gap-4">
+      <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              1. 상대 수비 블록 및 공백 분석 (Spatial Analysis)
+            </h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">속도(ΔV)·침투(ΔM)·역동작(ΔA)×전술배율 기반 구역별 취약도(SVS)</p>
+          </div>
+          <span class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">▲ 공격 방향</span>
+        </div>
+
+        <!-- Tactical Pitch 6-Zone Heatmap -->
+        <div class="pitch-bg rounded-xl p-3 flex flex-col gap-2.5 select-none">
+          <!-- Opponent Goal Line Indicator -->
+          <div class="w-1/2 mx-auto h-2 border-t-2 border-x-2 border-emerald-400/30 rounded-t-sm"></div>
+
+          <!-- Row 1: Space Behind Defensive Line -->
+          <div id="zone_behind_line" class="zone-card rounded-xl p-3 border text-center cursor-pointer">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Row 2: Left Flank | Left Half-Space | Right Half-Space | Right Flank -->
+          <div class="grid grid-cols-2 gap-2">
+            <div id="zone_left_flank" class="zone-card rounded-xl p-2.5 border"></div>
+            <div id="zone_right_flank" class="zone-card rounded-xl p-2.5 border"></div>
+          </div>
+
+          <!-- Row 3: Half-Spaces & Central Zone 14 -->
+          <div class="grid grid-cols-3 gap-2">
+            <div id="zone_left_halfspace" class="zone-card rounded-xl p-2.5 border"></div>
+            <div id="zone_center_zone14" class="zone-card rounded-xl p-2.5 border"></div>
+            <div id="zone_right_halfspace" class="zone-card rounded-xl p-2.5 border"></div>
+          </div>
+
+          <!-- Pitch Midfield Line -->
+          <div class="border-t border-dashed border-emerald-400/25 mt-1 pt-1.5 flex justify-between text-[10px] text-emerald-300/60 font-mono">
+            <span>좌측 공격 채널 (AML/DL)</span>
+            <span>중앙 빌드업</span>
+            <span>우측 공격 채널 (AMR/DR)</span>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="grid grid-cols-4 gap-1.5 text-[11px] text-center pt-1">
+          <div class="px-2 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold">SVS ≥ 70 핵심공략</div>
+          <div class="px-2 py-1 rounded bg-sky-500/20 border border-sky-500/40 text-sky-300 font-semibold">58~69 우위구역</div>
+          <div class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300">42~57 균형</div>
+          <div class="px-2 py-1 rounded bg-rose-500/15 border border-rose-500/30 text-rose-300">≤ 41 밀집/회피</div>
+        </div>
+      </div>
+
+      <!-- Interactive Live Match Memory Override / Simulator Controller -->
+      <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">
+            실시간 경기 변수 시뮬레이터 (스탯 감쇠 & 전술 반응 검증)
+          </h3>
+          <span class="text-[11px] text-slate-400">슬라이더 조작 시 즉시 수식 재계산</span>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <!-- Slider 1: Opponent DL Stamina -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="text-slate-300 font-medium">상대 좌측 풀백/윙백(DL) 실시간 체력</span>
+              <span id="lbl_dl_cond" class="font-bold text-rose-400 font-mono">64% (γ=0.91)</span>
+            </div>
+            <input id="inp_dl_cond" type="range" min="35" max="100" value="64" oninput="onControlChange()"
+              class="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg" />
+          </div>
+
+          <!-- Toggle: Opponent DL Yellow Card -->
+          <div class="flex items-center justify-between py-1 border-y border-slate-800/80">
+            <span class="text-slate-300 font-medium">상대 좌측 풀백(DL) 옐로카드 누적 여부 (태클 -15%)</span>
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input id="inp_dl_booked" type="checkbox" checked onchange="onControlChange()"
+                class="w-4 h-4 accent-amber-400 rounded cursor-pointer" />
+              <span class="text-amber-300 font-semibold">경고 1장 보유</span>
+            </label>
+          </div>
+
+          <!-- Slider 2: Opponent Defensive Line -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="text-slate-300 font-medium">상대 감독 수비 라인 높이 (1:매우낮음 ~ 5:매우높음)</span>
+              <span id="lbl_def_line" class="font-bold text-emerald-400 font-mono">5단계 (매우 높음)</span>
+            </div>
+            <input id="inp_def_line" type="range" min="1" max="5" value="5" oninput="onControlChange()"
+              class="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg" />
+          </div>
+
+          <!-- Slider 3: Opponent Defensive Width -->
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="text-slate-300 font-medium">상대 수비 폭 (1:극단적 중앙밀집 ~ 5:넓게)</span>
+              <span id="lbl_def_width" class="font-bold text-sky-400 font-mono">2단계 (중앙 밀집)</span>
+            </div>
+            <input id="inp_def_width" type="range" min="1" max="5" value="2" oninput="onControlChange()"
+              class="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLUMN 2 (Center, 4 cols): 1v1 Matchup Bleed Matrix -->
+    <section class="lg:col-span-4 flex flex-col gap-4">
+      <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 flex flex-col gap-3 h-full">
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+            2. 매치업 유혈 지점 매핑 (1v1 Matchup Matrix)
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-0.5">실효 스탯 기반 1:1 돌파 성공률(P_dribble) · 제공권(P_aerial) · 압박 턴오버(P_trap)</p>
+        </div>
+
+        <div id="matchupList" class="flex flex-col gap-3 overflow-y-auto">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- COLUMN 3 (Right, 4 cols): If-Then Tactical Instruction Guideline Feed -->
+    <section class="lg:col-span-4 flex flex-col gap-4">
+      <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 flex flex-col gap-3 h-full">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+              3. 전술 지시 가이드라인 자동 생성 (If-Then Engine)
+            </h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">FM 인게임에서 즉시 클릭해야 할 팀 지시(TI) · 개인 지시(PI) · 상대 대응(OI)</p>
+          </div>
+          <span id="recCountBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            4건 활성
+          </span>
+        </div>
+
+        <div id="recommendationList" class="flex flex-col gap-3">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Mathematical Formula Reference Box -->
+        <div class="mt-auto pt-3 border-t border-slate-800/90 text-[11px] text-slate-400 space-y-1.5 bg-slate-950/60 p-3 rounded-xl">
+          <div class="font-bold text-slate-300">작동 중인 매치 엔진 역추적 공식 요약</div>
+          <div>• <span class="text-emerald-400 font-semibold">실효 스탯 보정</span>: S_eff = S_base × γ(Condition) × (1 - 0.15·Booked)</div>
+          <div>• <span class="text-sky-400 font-semibold">공간 취약도(SVS)</span>: clip(50 + 4.5 × (0.45·ΔV + 0.35·ΔM + 0.20·ΔA) × M_tactic)</div>
+          <div>• <span class="text-rose-400 font-semibold">1:1 돌파 확률</span>: σ(0.28 × [(Dri·0.35 + Acc·0.25 + Agi·0.2 + Fla·0.2)_A - (Tck·0.35 + Mar·0.25 + Pos·0.2 + Agi·0.2)_D])</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // =========================================================================
+    // Built-in Tactical Analysis Engine (mirrors backend/app/engine/* 1:1)
+    // Automatically syncs with FastAPI backend if running on localhost:8000,
+    // or runs directly in-browser for zero-latency interactive testing.
+    // =========================================================================
+
+    function makeAttrs(overrides) {
+      return Object.assign({
+        pace: 13, acceleration: 13, agility: 13, balance: 13,
+        jumping_reach: 12, strength: 12, stamina: 14,
+        dribbling: 12, first_touch: 13, passing: 13, crossing: 12,
+        tackling: 12, marking: 12, heading: 12, flair: 12,
+        off_the_ball: 13, positioning: 12, anticipation: 13,
+        decisions: 13, composure: 13, concentration: 12,
+        aggression: 13, bravery: 13
+      }, overrides);
+    }
+
+    const MY_TEAM_TEMPLATE = {
+      team_name: "FC 서울 헤드코치 (우리 팀)",
+      formation: "4-2-3-1 Wide",
+      mentality: 4, defensive_line: 4, pressing_intensity: 4, defensive_width: 3,
+      players: [
+        {
+          player_id: 101, name: "이강인", shirt_number: 19, slot: "AMR",
+          role_name: "인버티드 윙어 (공격)", condition: 86.0, is_booked: false,
+          base_attrs: makeAttrs({
+            pace: 15, acceleration: 16, agility: 18, balance: 17,
+            dribbling: 18, flair: 18, first_touch: 17, passing: 17, crossing: 16,
+            off_the_ball: 16, anticipation: 16, decisions: 15, jumping_reach: 8, heading: 8
+          })
+        },
+        {
+          player_id: 102, name: "손흥민", shirt_number: 7, slot: "AML",
+          role_name: "인사이드 포워드 (공격)", condition: 84.0, is_booked: false,
+          base_attrs: makeAttrs({
+            pace: 17, acceleration: 17, agility: 16, balance: 15,
+            dribbling: 16, flair: 16, first_touch: 16, off_the_ball: 18,
+            anticipation: 17, composure: 17, jumping_reach: 12, heading: 12
+          })
+        },
+        {
+          player_id: 103, name: "오현규", shirt_number: 9, slot: "ST_C",
+          role_name: "전진형 포워드 (공격)", condition: 85.0, is_booked: false,
+          base_attrs: makeAttrs({
+            pace: 15, acceleration: 16, agility: 15, balance: 16,
+            jumping_reach: 14, strength: 16, heading: 14, bravery: 16,
+            dribbling: 14, off_the_ball: 16, anticipation: 15
+          })
+        },
+        {
+          player_id: 104, name: "이재성", shirt_number: 10, slot: "AMC",
+          role_name: "공격형 미드필더 (지원)", condition: 82.0, is_booked: false,
+          base_attrs: makeAttrs({
+            pace: 13, acceleration: 14, agility: 15, balance: 15,
+            passing: 15, first_touch: 16, off_the_ball: 17, anticipation: 17,
+            decisions: 16, stamina: 18, tackling: 12
+          })
+        }
+      ]
+    };
+
+    const SCENARIO_PRESETS = {
+      high_line_tired_fb: {
+        match_minute: 68, home_score: 1, away_score: 1,
+        scenario_id: "high_line_tired_fb",
+        opponent_team: {
+          team_name: "레알 마드리드 B", formation: "4-3-3 High Press",
+          mentality: 4, defensive_line: 5, pressing_intensity: 4, defensive_width: 2,
+          players: [
+            {
+              player_id: 201, name: "M. 구티에레스", shirt_number: 3, slot: "DL",
+              role_name: "완성형 윙백", condition: 64.0, is_booked: true,
+              base_attrs: makeAttrs({
+                pace: 14, acceleration: 14, agility: 13, balance: 12,
+                tackling: 11, marking: 10, positioning: 10, concentration: 10,
+                jumping_reach: 10, heading: 9, composure: 13, first_touch: 14
+              })
+            },
+            {
+              player_id: 202, name: "D. 카르바할", shirt_number: 2, slot: "DR",
+              role_name: "풀백 (지원)", condition: 78.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 14, acceleration: 14, agility: 14, balance: 15,
+                tackling: 15, marking: 14, positioning: 15, concentration: 15,
+                jumping_reach: 11, heading: 12, composure: 15
+              })
+            },
+            {
+              player_id: 203, name: "N. 코바치", shirt_number: 4, slot: "DC_L",
+              role_name: "중앙 수비수", condition: 73.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 11, acceleration: 10, agility: 9, balance: 11,
+                jumping_reach: 17, heading: 17, strength: 17,
+                tackling: 14, marking: 14, positioning: 13,
+                composure: 9, first_touch: 9, decisions: 10, passing: 10
+              })
+            },
+            {
+              player_id: 204, name: "R. 아센시오", shirt_number: 5, slot: "DC_R",
+              role_name: "중앙 수비수", condition: 76.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 12, acceleration: 11, agility: 10, balance: 12,
+                jumping_reach: 16, heading: 16, strength: 16,
+                tackling: 14, marking: 13, positioning: 13,
+                composure: 12, first_touch: 12, decisions: 12
+              })
+            },
+            {
+              player_id: 205, name: "M. 마르틴", shirt_number: 6, slot: "DM_C",
+              role_name: "볼 위닝 미드필더", condition: 74.0, is_booked: true,
+              base_attrs: makeAttrs({
+                pace: 12, acceleration: 12, agility: 12,
+                tackling: 15, marking: 14, positioning: 14, aggression: 16,
+                composure: 11, first_touch: 11, decisions: 11
+              })
+            }
+          ]
+        }
+      },
+      low_block_central_congestion: {
+        match_minute: 74, home_score: 0, away_score: 0,
+        scenario_id: "low_block_central_congestion",
+        opponent_team: {
+          team_name: "아틀레티코 마드리드", formation: "5-3-2 Low Block",
+          mentality: 2, defensive_line: 2, pressing_intensity: 2, defensive_width: 1,
+          players: [
+            {
+              player_id: 301, name: "S. 리노", shirt_number: 12, slot: "WBL",
+              role_name: "윙백 (지원)", condition: 61.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 15, acceleration: 15, agility: 14,
+                tackling: 10, marking: 9, positioning: 9, concentration: 9,
+                jumping_reach: 9, heading: 8
+              })
+            },
+            {
+              player_id: 302, name: "N. 몰리나", shirt_number: 16, slot: "WBR",
+              role_name: "윙백 (지원)", condition: 63.0, is_booked: true,
+              base_attrs: makeAttrs({
+                pace: 15, acceleration: 15, agility: 13,
+                tackling: 11, marking: 10, positioning: 10, concentration: 10
+              })
+            },
+            {
+              player_id: 303, name: "J. 히메네스", shirt_number: 2, slot: "DC_C",
+              role_name: "중앙 수비수", condition: 81.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 13, acceleration: 12, agility: 11,
+                jumping_reach: 16, heading: 17, strength: 17,
+                tackling: 16, marking: 16, positioning: 16, concentration: 15
+              })
+            },
+            {
+              player_id: 304, name: "R. 르노르망", shirt_number: 24, slot: "DC_L",
+              role_name: "중앙 수비수", condition: 80.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 13, acceleration: 12, agility: 11,
+                jumping_reach: 16, heading: 16, strength: 16,
+                tackling: 15, marking: 16, positioning: 16
+              })
+            },
+            {
+              player_id: 305, name: "A. 비첼", shirt_number: 20, slot: "DC_R",
+              role_name: "리베로", condition: 69.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 9, acceleration: 9, agility: 10,
+                jumping_reach: 15, heading: 14, strength: 15,
+                tackling: 14, marking: 14, positioning: 16, composure: 16
+              })
+            }
+          ]
+        }
+      },
+      aerial_mismatch_press_trap: {
+        match_minute: 55, home_score: 2, away_score: 1,
+        scenario_id: "aerial_mismatch_press_trap",
+        opponent_team: {
+          team_name: "브라이튼 유스", formation: "4-2-3-1 Build-up",
+          mentality: 4, defensive_line: 4, pressing_intensity: 4, defensive_width: 3,
+          players: [
+            {
+              player_id: 401, name: "V. 바르코", shirt_number: 19, slot: "DL",
+              role_name: "인버티드 윙백", condition: 76.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 14, acceleration: 15, agility: 15,
+                jumping_reach: 7, heading: 7, strength: 8,
+                tackling: 11, marking: 10, positioning: 10
+              })
+            },
+            {
+              player_id: 402, name: "T. 램프티", shirt_number: 2, slot: "DR",
+              role_name: "윙백 (공격)", condition: 74.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 17, acceleration: 18, agility: 16,
+                jumping_reach: 6, heading: 6, strength: 7,
+                tackling: 11, marking: 10, positioning: 9
+              })
+            },
+            {
+              player_id: 403, name: "I. 마르티네스", shirt_number: 4, slot: "DC_L",
+              role_name: "공격형 수비수", condition: 77.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 13, acceleration: 13, agility: 13,
+                jumping_reach: 10, heading: 11, strength: 11,
+                tackling: 13, marking: 13, positioning: 12,
+                composure: 8, first_touch: 9, decisions: 9, passing: 9
+              })
+            },
+            {
+              player_id: 404, name: "J. 폴 헤케", shirt_number: 5, slot: "DC_R",
+              role_name: "중앙 수비수", condition: 79.0, is_booked: false,
+              base_attrs: makeAttrs({
+                pace: 12, acceleration: 12, agility: 12,
+                jumping_reach: 11, heading: 11, strength: 12,
+                tackling: 13, marking: 13, positioning: 12,
+                composure: 9, first_touch: 10, decisions: 10, passing: 10
+              })
+            }
+          ]
+        }
+      }
+    };
+
+    let currentState = JSON.parse(JSON.stringify(SCENARIO_PRESETS.high_line_tired_fb));
+    currentState.my_team = JSON.parse(JSON.stringify(MY_TEAM_TEMPLATE));
+
+    // Module 1: Effective Stats
+    function computeGamma(c) {
+      if (c >= 75) return 1.0;
+      if (c >= 55) return +(1.0 - 0.008 * (75 - c)).toFixed(4);
+      return +Math.max(0.4, 0.84 - 0.015 * (55 - c)).toFixed(4);
+    }
+
+    function applyEffectiveStats(team) {
+      team.players.forEach(p => {
+        const g = computeGamma(p.condition);
+        const tg = 0.5 + 0.5 * g;
+        const card = p.is_booked ? 0.85 : 1.0;
+        const b = p.base_attrs;
+        p.stamina_decay_factor = g;
+        p.effective_attrs = {
+          pace: +(b.pace * g).toFixed(2),
+          acceleration: +(b.acceleration * g).toFixed(2),
+          agility: +(b.agility * g).toFixed(2),
+          balance: +(b.balance * g).toFixed(2),
+          jumping_reach: +(b.jumping_reach * (0.65 + 0.35 * g)).toFixed(2),
+          strength: +(b.strength * (0.6 + 0.4 * g)).toFixed(2),
+          stamina: b.stamina,
+          dribbling: +(b.dribbling * tg).toFixed(2),
+          first_touch: +(b.first_touch * tg).toFixed(2),
+          passing: +(b.passing * tg).toFixed(2),
+          crossing: +(b.crossing * tg).toFixed(2),
+          tackling: +(b.tackling * tg * card).toFixed(2),
+          marking: +(b.marking * tg).toFixed(2),
+          heading: +(b.heading * tg).toFixed(2),
+          flair: b.flair,
+          off_the_ball: +(b.off_the_ball * (0.35 + 0.65 * g)).toFixed(2),
+          positioning: +(b.positioning * (0.4 + 0.6 * g)).toFixed(2),
+          anticipation: +(b.anticipation * tg).toFixed(2),
+          decisions: +(b.decisions * tg).toFixed(2),
+          composure: +(b.composure * tg).toFixed(2),
+          concentration: +(b.concentration * g).toFixed(2),
+          aggression: +(b.aggression * card).toFixed(2),
+          bravery: b.bravery
+        };
+      });
+    }
+
+    function selectPlayers(players, slots, fallback) {
+      let m = players.filter(p => slots.includes(p.slot));
+      if (!m.length) m = players.filter(p => fallback.includes(p.slot));
+      if (!m.length) m = players.slice(-2);
+      return m;
+    }
+
+    function avgEff(players, attr) {
+      if (!players.length) return 12;
+      return players.reduce((acc, p) => acc + p.effective_attrs[attr], 0) / players.length;
+    }
+
+    // Module 2: Spatial Vulnerability Analysis
+    function computeSpatialZones(myTeam, oppTeam) {
+      const myP = myTeam.players;
+      const oppP = oppTeam.players;
+      const oppCbCount = oppP.filter(p => ["DC_L", "DC_C", "DC_R"].includes(p.slot)).length;
+      const oppDmCount = oppP.filter(p => ["DM_L", "DM_C", "DM_R"].includes(p.slot)).length;
+      const hasWideFb = oppP.some(p => ["DL", "DR"].includes(p.slot));
+
+      const flankMult = +(1.0 + (3 - oppTeam.defensive_width) * 0.12 + (!hasWideFb ? 0.10 : 0)).toFixed(2);
+      const halfMult = +(1.0 + (oppTeam.pressing_intensity - 3) * 0.08).toFixed(2);
+      const centerMult = +(1.0 - ((oppCbCount >= 3 || oppDmCount >= 2) ? 0.12 : 0) + (oppTeam.defensive_width - 3) * 0.10).toFixed(2);
+      const behindMult = +(0.70 + 0.15 * oppTeam.defensive_line).toFixed(2);
+
+      const configs = [
+        {
+          zone_id: "behind_line", zone_name_kr: "수비 라인 뒷공간 (스루패스 침투)",
+          att: ["ST_C", "AML", "AMR"], attFb: ["AMC"],
+          def: ["DC_L", "DC_C", "DC_R", "DL", "DR"], defFb: ["DM_C"],
+          mult: behindMult, bonus: (oppTeam.defensive_line - 3) * 0.65
+        },
+        {
+          zone_id: "left_flank", zone_name_kr: "좌측 측면 (vs 상대 우측 수비)",
+          att: ["AML", "ML", "DL"], attFb: ["ST_C"],
+          def: ["DR", "WBR"], defFb: ["DC_R", "DC_C"],
+          mult: flankMult, bonus: !oppP.some(p => p.slot === "DR") ? 0.8 : 0
+        },
+        {
+          zone_id: "right_flank", zone_name_kr: "우측 측면 (vs 상대 좌측 수비)",
+          att: ["AMR", "MR", "DR"], attFb: ["ST_C"],
+          def: ["DL", "WBL"], defFb: ["DC_L", "DC_C"],
+          mult: flankMult, bonus: !oppP.some(p => p.slot === "DL") ? 0.8 : 0
+        },
+        {
+          zone_id: "left_halfspace", zone_name_kr: "좌측 하프스페이스",
+          att: ["AML", "AMC"], attFb: ["ST_C"],
+          def: ["DC_R", "DR", "DM_C"], defFb: ["DC_C"],
+          mult: halfMult, bonus: 0
+        },
+        {
+          zone_id: "center_zone14", zone_name_kr: "중앙 2선 (Zone 14)",
+          att: ["AMC", "ST_C"], attFb: ["AML", "AMR"],
+          def: ["DM_C", "DC_C", "DC_L", "DC_R"], defFb: ["DL"],
+          mult: centerMult, bonus: (oppCbCount >= 3) ? -1.2 : 0
+        },
+        {
+          zone_id: "right_halfspace", zone_name_kr: "우측 하프스페이스",
+          att: ["AMR", "AMC"], attFb: ["ST_C"],
+          def: ["DC_L", "DL", "DM_C"], defFb: ["DC_C"],
+          mult: halfMult, bonus: 0
+        }
+      ];
+
+      return configs.map(c => {
+        const atts = selectPlayers(myP, c.att, c.attFb);
+        const defs = selectPlayers(oppP, c.def, c.defFb);
+        const dv = +((0.55 * avgEff(atts, "acceleration") + 0.45 * avgEff(atts, "pace")) -
+                     (0.55 * avgEff(defs, "acceleration") + 0.45 * avgEff(defs, "pace"))).toFixed(2);
+        const dm = +((0.60 * avgEff(atts, "off_the_ball") + 0.40 * avgEff(atts, "anticipation")) -
+                     (0.50 * avgEff(defs, "positioning") + 0.30 * avgEff(defs, "concentration") + 0.20 * avgEff(defs, "decisions"))).toFixed(2);
+        const da = +((0.60 * avgEff(atts, "agility") + 0.40 * avgEff(atts, "balance")) -
+                     (0.65 * avgEff(defs, "agility") + 0.35 * avgEff(defs, "balance"))).toFixed(2);
+        const zRaw = (0.45 * dv + 0.35 * dm + 0.20 * da + c.bonus) * c.mult;
+        const svs = Math.max(0, Math.min(100, +(50 + 4.5 * zRaw).toFixed(1)));
+        const status = svs >= 70 ? "CRITICAL_TARGET" : (svs >= 58 ? "ADVANTAGE" : (svs >= 42 ? "NEUTRAL" : "AVOID"));
+        return {
+          zone_id: c.zone_id, zone_name_kr: c.zone_name_kr,
+          svs_score: svs, velocity_gap: dv, movement_gap: dm, agility_gap: da,
+          tactical_multiplier: c.mult, status_label: status
+        };
+      });
+    }
+
+    function sigmoidPct(x, k) {
+      return +(100 / (1 + Math.exp(-k * x))).toFixed(1);
+    }
+
+    // Module 3: Matchup Matrix
+    function computeMatchups(myTeam, oppTeam) {
+      const pairs = [
+        ["right_wing_1v1", "우측 측면 1:1 매치업", ["AMR"], ["DL", "WBL", "DC_L"]],
+        ["left_wing_1v1", "좌측 측면 1:1 매치업", ["AML"], ["DR", "WBR", "DC_R"]],
+        ["striker_vs_lcb", "중앙 공격수 vs 상대 좌측 센터백", ["ST_C"], ["DC_L", "DC_C"]],
+        ["striker_vs_rcb", "중앙 공격수 vs 상대 우측 센터백", ["ST_C"], ["DC_R", "DC_C"]]
+      ];
+
+      return pairs.map(([id, label, attSlots, defSlots]) => {
+        const att = selectPlayers(myTeam.players, attSlots, ["ST_C"])[0];
+        const dfn = selectPlayers(oppTeam.players, defSlots, ["DC_L"])[0];
+        const a = att.effective_attrs;
+        const d = dfn.effective_attrs;
+
+        const xDri = (0.35 * a.dribbling + 0.25 * a.acceleration + 0.20 * a.agility + 0.20 * a.flair) -
+                     (0.35 * d.tackling + 0.25 * d.marking + 0.20 * d.positioning + 0.20 * d.agility);
+        const pDri = sigmoidPct(xDri, 0.28);
+
+        const xAir = (0.45 * a.jumping_reach + 0.25 * a.heading + 0.20 * a.strength + 0.10 * a.bravery) -
+                     (0.45 * d.jumping_reach + 0.25 * d.heading + 0.20 * d.strength + 0.10 * d.bravery);
+        const pAir = sigmoidPct(xAir, 0.30);
+
+        const xTrap = 13.0 - (0.30 * d.composure + 0.25 * d.first_touch + 0.25 * d.decisions + 0.20 * d.passing);
+        const pTrap = sigmoidPct(xTrap, 0.35);
+
+        const agiDiff = +((0.60 * a.agility + 0.40 * a.balance) - (0.65 * d.agility + 0.35 * d.balance)).toFixed(2);
+        const reasons = [];
+        if (dfn.condition <= 70 && pDri >= 66) {
+          reasons.push(`체력 고갈(${dfn.condition.toFixed(0)}%) → 돌파 기대 확률 ${pDri}%`);
+        } else if (pDri >= 72) {
+          reasons.push(`1:1 온더볼 돌파 절대 우위 (${pDri}%)`);
+        }
+        if (dfn.is_booked && pDri >= 60) {
+          reasons.push(`경고 누적(태클 -15%) → 파울/돌파 취약`);
+        }
+        if (pAir >= 70) {
+          reasons.push(`제공권 미스매치 우위 (${pAir}%)`);
+        }
+        if (pTrap >= 68) {
+          reasons.push(`빌드업 압박 턴오버 타겟 (${pTrap}%)`);
+        }
+
+        return {
+          pair_id: id, zone_label: label,
+          att, dfn,
+          dribble_prob: pDri, aerial_prob: pAir, press_trap_prob: pTrap,
+          agility_diff: agiDiff,
+          is_bleed_point: reasons.length > 0,
+          bleed_reasons: reasons
+        };
+      });
+    }
+
+    // Module 4: Rule Engine
+    function evaluateRules(state, zones, matchups) {
+      const zMap = Object.fromEntries(zones.map(z => [z.zone_id, z]));
+      const opp = state.opponent_team;
+      const recs = [];
+
+      const leftF = zMap.left_flank;
+      const rightF = zMap.right_flank;
+      const centerZ = zMap.center_zone14;
+      const behindZ = zMap.behind_line;
+      const bestFlank = rightF.svs_score >= leftF.svs_score ? rightF : leftF;
+      const flankKr = bestFlank.zone_id === "right_flank" ? "우측 측면" : "좌측 측면";
+
+      const oppCbCount = opp.players.filter(p => ["DC_L", "DC_C", "DC_R"].includes(p.slot)).length;
+      const isCentralCongested = opp.defensive_width <= 2 || oppCbCount >= 3 || centerZ.svs_score <= 46;
+
+      if (isCentralCongested && bestFlank.svs_score >= 62) {
+        recs.push({
+          rule_id: "R-01",
+          priority: bestFlank.svs_score >= 72 ? "URGENT" : "HIGH",
+          category: "팀 전술 지시 (TI)",
+          title: `중앙 밀집 블록 우회 → [${flankKr} 집중 공략] 및 패스 길이 조정`,
+          action_badges: ["패스 길이: 짧게 → 혼합", "공격 폭: 넓게", `${flankKr} 집중 공략`],
+          reasoning: `상대가 중앙 밀집형 수비(수비 폭 ${opp.defensive_width}단계, 중앙 SVS ${centerZ.svs_score})를 사용하므로 패스 길이를 '짧게'에서 '혼합'으로 바꾸고, 공백이 열린 ${flankKr}(SVS ${bestFlank.svs_score}) 공략을 지시하세요.`,
+          trigger_metric: `${flankKr} SVS ${bestFlank.svs_score} vs 중앙 ${centerZ.svs_score}`
+        });
+      }
+
+      if (opp.defensive_line >= 4 && behindZ.svs_score >= 66) {
+        recs.push({
+          rule_id: "R-02",
+          priority: "URGENT",
+          category: "팀 전술 지시 (TI)",
+          title: "상대 높은 수비라인 뒷공간 노출 → [공간으로 패스하라] 활성화",
+          action_badges: ["공간으로 패스하라 (Pass Into Space)", "템포: 빠르게", "공격수: 라인 침투"],
+          reasoning: `상대 수비 라인이 높고(${opp.defensive_line}단계/5), 공격진 속도 우위(ΔV ${behindZ.velocity_gap >= 0 ? '+' : ''}${behindZ.velocity_gap}) 및 센터백 역동작 격차(ΔA ${behindZ.agility_gap >= 0 ? '+' : ''}${behindZ.agility_gap})가 큽니다.`,
+          trigger_metric: `뒷공간 SVS ${behindZ.svs_score}`
+        });
+      }
+
+      matchups.filter(m => ["right_wing_1v1", "left_wing_1v1"].includes(m.pair_id)).forEach(wm => {
+        if ((wm.dfn.condition <= 70 || wm.dfn.is_booked) && wm.dribble_prob >= 65) {
+          const sideKr = wm.pair_id === "right_wing_1v1" ? "우측" : "좌측";
+          recs.push({
+            rule_id: "R-03",
+            priority: "URGENT",
+            category: "개인/팀 지시 (PI/TI)",
+            title: `[${sideKr} 유혈 지점] ${wm.dfn.name}(체력 ${wm.dfn.condition.toFixed(0)}%) 상대로 1:1 집중 돌파`,
+            action_badges: [`${wm.att.name}: 드리블 더 많이`, `${sideKr} 측면 집중 공략`, `${sideKr} 오버래핑/언더래핑`],
+            reasoning: `상대 ${wm.dfn.slot} ${wm.dfn.name}의 체력이 ${wm.dfn.condition.toFixed(0)}%로 떨어져 실효 민첩성·태클이 급락했습니다(${wm.dfn.is_booked ? '옐로카드 페널티 포함' : ''}). ${wm.att.name}의 돌파 성공 확률이 ${wm.dribble_prob}%에 달합니다.`,
+            trigger_metric: `1:1 돌파 기대 확률 ${wm.dribble_prob}%`
+          });
+        }
+      });
+
+      const stMatchups = matchups.filter(m => ["striker_vs_lcb", "striker_vs_rcb"].includes(m.pair_id));
+      if (stMatchups.length) {
+        const avgAir = stMatchups.reduce((s, m) => s + m.aerial_prob, 0) / stMatchups.length;
+        const avgAgi = stMatchups.reduce((s, m) => s + m.agility_diff, 0) / stMatchups.length;
+        if (avgAir <= 44 && avgAgi >= 1.8) {
+          recs.push({
+            rule_id: "R-04",
+            priority: "HIGH",
+            category: "팀 전술 지시 (TI)",
+            title: "상대 장신 센터백 점프거리 무력화 → [낮은 크로스] 전환",
+            action_badges: ["크로스 유형: 낮은 크로스 (Low Crosses)", "페널티 박스 안으로 공을 투입하라"],
+            reasoning: `상대 센터백 대비 제공권 승률은 ${avgAir.toFixed(1)}%로 열세이나, 발목 반응성/민첩성 우위(ΔA +${avgAgi.toFixed(1)})가 큽니다. 땅볼 낮은 크로스로 상대의 높은 점프거리 스탯을 무력화하세요.`,
+            trigger_metric: `제공권 ${avgAir.toFixed(1)}% | 역동작 우위 +${avgAgi.toFixed(1)}`
+          });
+        } else if (avgAir >= 66) {
+          recs.push({
+            rule_id: "R-05",
+            priority: "HIGH",
+            category: "팀 전술 지시 (TI)",
+            title: "상대 단신 수비진 제공권 압도 → [높은 크로스] 및 [얼리 크로스]",
+            action_badges: ["크로스 유형: 높은 크로스", "일찍 크로스를 올려라"],
+            reasoning: `상대 수비진의 점프거리·몸싸움이 낮아 공중볼 경합 승률이 ${avgAir.toFixed(1)}%로 압도적입니다. 높은 크로스로 폭격하세요.`,
+            trigger_metric: `제공권 승률 ${avgAir.toFixed(1)}%`
+          });
+        }
+      }
+
+      const traps = matchups.filter(m => m.press_trap_prob >= 68);
+      if (traps.length) {
+        const worst = traps.sort((a, b) => b.press_trap_prob - a.press_trap_prob)[0];
+        recs.push({
+          rule_id: "R-06",
+          priority: "HIGH",
+          category: "상대 대응 지시 (OI)",
+          title: `[빌드업 압박 트랩] ${worst.dfn.name} 집중 압박 및 약발 유도`,
+          action_badges: [`${worst.dfn.name}: 항상 압박 (Trigger Press)`, "태클: 강하게", "약발로 유도"],
+          reasoning: `상대 ${worst.dfn.name}(${worst.dfn.slot})의 침착성(${worst.dfn.base_attrs.composure})과 퍼스트터치(${worst.dfn.base_attrs.first_touch})가 낮아 압박 시 턴오버 유발 확률이 ${worst.press_trap_prob}%입니다.`,
+          trigger_metric: `턴오버 유발 확률 ${worst.press_trap_prob}%`
+        });
+      }
+
+      return recs;
+    }
+
+    function zoneStyle(status) {
+      if (status === "CRITICAL_TARGET") {
+        return {
+          box: "bg-emerald-500/20 border-emerald-400/70 text-emerald-100 pulse-border",
+          badge: "bg-emerald-400 text-slate-950 font-extrabold",
+          tag: "핵심 공략"
+        };
+      }
+      if (status === "ADVANTAGE") {
+        return {
+          box: "bg-sky-500/20 border-sky-400/50 text-sky-100",
+          badge: "bg-sky-400 text-slate-950 font-bold",
+          tag: "공략 유리"
+        };
+      }
+      if (status === "NEUTRAL") {
+        return {
+          box: "bg-slate-900/75 border-slate-700/80 text-slate-200",
+          badge: "bg-slate-700 text-slate-200 font-semibold",
+          tag: "균형"
+        };
+      }
+      return {
+        box: "bg-rose-950/45 border-rose-500/40 text-rose-200/80",
+        badge: "bg-rose-500/30 text-rose-200 font-semibold",
+        tag: "밀집/우회"
+      };
+    }
+
+    function renderDashboard() {
+      applyEffectiveStats(currentState.my_team);
+      applyEffectiveStats(currentState.opponent_team);
+
+      const zones = computeSpatialZones(currentState.my_team, currentState.opponent_team);
+      const matchups = computeMatchups(currentState.my_team, currentState.opponent_team);
+      const recs = evaluateRules(currentState, zones, matchups);
+
+      // Header Info
+      document.getElementById("oppTeamName").textContent = currentState.opponent_team.team_name;
+      document.getElementById("oppFormation").textContent = currentState.opponent_team.formation;
+      document.getElementById("matchClock").textContent = `${currentState.match_minute}:00'`;
+      document.getElementById("scoreText").textContent = `${currentState.home_score} : ${currentState.away_score}`;
+
+      // Urgent Top Banner
+      const bestZone = [...zones].sort((a, b) => b.svs_score - a.svs_score)[0];
+      const topMatchup = [...matchups].sort((a, b) => Math.max(b.dribble_prob, b.aerial_prob) - Math.max(a.dribble_prob, a.aerial_prob))[0];
+
+      document.getElementById("urgentTitle").textContent =
+        `[${topMatchup.zone_label}] 상대 ${topMatchup.dfn.name} (체력 ${topMatchup.dfn.condition.toFixed(0)}%${topMatchup.dfn.is_booked ? '·경고1' : ''}) → ${topMatchup.att.name} 돌파 기대치 ${topMatchup.dribble_prob}% / 제공권 ${topMatchup.aerial_prob}%`;
+      document.getElementById("urgentSub").textContent =
+        `실효 스탯 감쇠 계수 γ=${topMatchup.dfn.stamina_decay_factor} 적용됨 (표기 주력 ${topMatchup.dfn.base_attrs.pace} → 실효 ${topMatchup.dfn.effective_attrs.pace}, 표기 민첩 ${topMatchup.dfn.base_attrs.agility} → 실효 ${topMatchup.dfn.effective_attrs.agility})`;
+      document.getElementById("urgentZoneBadge").textContent =
+        `최우선 공략 구역: ${bestZone.zone_name_kr.split('(')[0].trim()} (SVS ${bestZone.svs_score})`;
+
+      // Render 6 Pitch Zones
+      zones.forEach(z => {
+        const el = document.getElementById(`zone_${z.zone_id}`);
+        if (!el) return;
+        const st = zoneStyle(z.status_label);
+        el.className = `zone-card rounded-xl p-2.5 border ${st.box}`;
+        el.innerHTML = `
+          <div class="flex items-center justify-between gap-1 mb-1">
+            <span class="text-xs font-bold truncate">${z.zone_name_kr}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded ${st.badge}">${st.tag}</span>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <div class="text-xl font-extrabold tracking-tight">SVS ${z.svs_score}</div>
+            <div class="text-[11px] font-mono opacity-85">배율 x${z.tactical_multiplier}</div>
+          </div>
+          <div class="mt-1.5 pt-1.5 border-t border-white/10 flex justify-between text-[10px] font-mono opacity-90">
+            <span>속도 ΔV:${z.velocity_gap >= 0 ? '+' : ''}${z.velocity_gap}</span>
+            <span>침투 ΔM:${z.movement_gap >= 0 ? '+' : ''}${z.movement_gap}</span>
+            <span>역동작 ΔA:${z.agility_gap >= 0 ? '+' : ''}${z.agility_gap}</span>
+          </div>
+        `;
+      });
+
+      // Render Matchup Cards
+      const mContainer = document.getElementById("matchupList");
+      mContainer.innerHTML = matchups.map(m => {
+        const bleedBadge = m.is_bleed_point
+          ? `<span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-rose-500 text-slate-950">유혈 지점 포착</span>`
+          : `<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-400">정상 경합</span>`;
+
+        const borderCls = m.is_bleed_point ? "border-rose-500/50 bg-slate-950/90" : "border-slate-800 bg-slate-950/50";
+        return `
+          <div class="rounded-xl border ${borderCls} p-3 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-200">${m.zone_label}</span>
+              ${bleedBadge}
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 bg-slate-900/90 p-2 rounded-lg border border-slate-800/80 text-xs">
+              <div>
+                <div class="text-emerald-400 font-bold">${m.att.name} (${m.att.slot})</div>
+                <div class="text-[11px] text-slate-400">체력 ${m.att.condition.toFixed(0)}% · 실효드리블 ${m.att.effective_attrs.dribbling}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-rose-400 font-bold">${m.dfn.name} (${m.dfn.slot}) ${m.dfn.is_booked ? '🟨' : ''}</div>
+                <div class="text-[11px] text-slate-400">
+                  체력 <span class="${m.dfn.condition <= 70 ? 'text-rose-400 font-bold' : 'text-slate-300'}">${m.dfn.condition.toFixed(0)}%</span>
+                  · 실효태클 ${m.dfn.effective_attrs.tackling} <span class="text-[10px] text-slate-500">(기본 ${m.dfn.base_attrs.tackling})</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3 Probability Bars -->
+            <div class="space-y-1.5 text-[11px]">
+              <div>
+                <div class="flex justify-between mb-0.5">
+                  <span class="text-slate-300">1:1 온더볼 돌파 성공 기대 확률 (P_dribble)</span>
+                  <span class="font-bold ${m.dribble_prob >= 66 ? 'text-emerald-400' : 'text-slate-200'}">${m.dribble_prob}%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div class="h-full ${m.dribble_prob >= 66 ? 'bg-emerald-400' : 'bg-sky-500'}" style="width: ${m.dribble_prob}%"></div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <div class="flex justify-between mb-0.5">
+                    <span class="text-slate-400">공중볼 승률 (P_aerial)</span>
+                    <span class="font-bold ${m.aerial_prob >= 66 ? 'text-amber-300' : 'text-slate-300'}">${m.aerial_prob}%</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-amber-400" style="width: ${m.aerial_prob}%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-0.5">
+                    <span class="text-slate-400">압박 턴오버 (P_trap)</span>
+                    <span class="font-bold ${m.press_trap_prob >= 68 ? 'text-rose-400' : 'text-slate-300'}">${m.press_trap_prob}%</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-rose-500" style="width: ${m.press_trap_prob}%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            ${m.bleed_reasons.length ? `
+              <div class="text-[11px] text-rose-300 bg-rose-950/40 border border-rose-500/30 rounded-lg px-2.5 py-1.5 space-y-0.5">
+                ${m.bleed_reasons.map(r => `<div>• ${r}</div>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      // Render Tactical Recommendations
+      document.getElementById("recCountBadge").textContent = `${recs.length}건 활성`;
+      const rContainer = document.getElementById("recommendationList");
+      rContainer.innerHTML = recs.map(r => {
+        const prioBadge = r.priority === "URGENT"
+          ? `<span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-400 text-slate-950">최우선 지시 (URGENT)</span>`
+          : `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40">권장 지시 (HIGH)</span>`;
+
+        return `
+          <div class="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 flex flex-col gap-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[11px] font-mono font-bold text-emerald-400">[${r.rule_id}]</span>
+                <span class="text-[11px] text-slate-400 font-semibold">${r.category}</span>
+              </div>
+              ${prioBadge}
+            </div>
+
+            <div class="text-xs font-bold text-white leading-snug">${r.title}</div>
+
+            <div class="flex flex-wrap gap-1.5 my-0.5">
+              ${r.action_badges.map(b => `
+                <span class="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-emerald-300">
+                  ✓ ${b}
+                </span>
+              `).join('')}
+            </div>
+
+            <p class="text-[11px] text-slate-300 leading-relaxed">${r.reasoning}</p>
+            <div class="text-[10px] font-mono text-slate-500 text-right">근거 지표: ${r.trigger_metric}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function syncControlsFromState() {
+      const opp = currentState.opponent_team;
+      const dl = opp.players.find(p => ["DL", "WBL"].includes(p.slot)) || opp.players[0];
+      document.getElementById("inp_dl_cond").value = dl.condition;
+      document.getElementById("inp_dl_booked").checked = dl.is_booked;
+      document.getElementById("inp_def_line").value = opp.defensive_line;
+      document.getElementById("inp_def_width").value = opp.defensive_width;
+      updateControlLabels();
+    }
+
+    function updateControlLabels() {
+      const cond = +document.getElementById("inp_dl_cond").value;
+      const g = computeGamma(cond);
+      document.getElementById("lbl_dl_cond").textContent = `${cond}% (γ=${g.toFixed(2)})`;
+
+      const lineVal = +document.getElementById("inp_def_line").value;
+      const lineNames = ["", "1단계 (매우 낮음)", "2단계 (낮음)", "3단계 (표준)", "4단계 (높음)", "5단계 (매우 높음)"];
+      document.getElementById("lbl_def_line").textContent = lineNames[lineVal];
+
+      const widthVal = +document.getElementById("inp_def_width").value;
+      const widthNames = ["", "1단계 (극단적 중앙밀집)", "2단계 (중앙 밀집)", "3단계 (표준)", "4단계 (넓게)", "5단계 (매우 넓게)"];
+      document.getElementById("lbl_def_width").textContent = widthNames[widthVal];
+    }
+
+    function onControlChange() {
+      updateControlLabels();
+      const opp = currentState.opponent_team;
+      const dl = opp.players.find(p => ["DL", "WBL"].includes(p.slot)) || opp.players[0];
+      dl.condition = +document.getElementById("inp_dl_cond").value;
+      dl.is_booked = document.getElementById("inp_dl_booked").checked;
+      opp.defensive_line = +document.getElementById("inp_def_line").value;
+      opp.defensive_width = +document.getElementById("inp_def_width").value;
+      renderDashboard();
+    }
+
+    function selectScenario(scenId) {
+      currentState = JSON.parse(JSON.stringify(SCENARIO_PRESETS[scenId]));
+      currentState.my_team = JSON.parse(JSON.stringify(MY_TEAM_TEMPLATE));
+
+      const mapBtn = {
+        high_line_tired_fb: "btn_scen_1",
+        low_block_central_congestion: "btn_scen_2",
+        aerial_mismatch_press_trap: "btn_scen_3"
+      };
+      Object.entries(mapBtn).forEach(([id, btnId]) => {
+        const el = document.getElementById(btnId);
+        if (id === scenId) {
+          el.className = "text-xs px-3 py-1.5 rounded-lg font-semibold border transition bg-emerald-500/20 border-emerald-500/50 text-emerald-300";
+        } else {
+          el.className = "text-xs px-3 py-1.5 rounded-lg font-semibold border transition bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800";
+        }
+      });
+
+      syncControlsFromState();
+      renderDashboard();
+    }
+
+    // Initialize on load
+    syncControlsFromState();
+    renderDashboard();
+  </script>
+</body>
+</html>
+

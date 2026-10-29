@@ -1,0 +1,52 @@
+{
+  "target_process": "fm.exe",
+  "version_profile": "FM24_STEAM_DEFAULT",
+  "polling_interval_ms": 800,
+  "aob_signatures": {
+    "match_controller_sig": "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 ?? 48 8B 40 28",
+    "tactical_state_sig": "48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B D8 48 85 C0"
+  },
+  "pointer_chains": {
+    "match_clock_minute": {
+      "base_offset": "0x04A8F120",
+      "offsets": ["0x18", "0x40", "0x10C"]
+    },
+    "home_team_struct": {
+      "base_offset": "0x04A8F120",
+      "offsets": ["0x18", "0x68", "0x00"]
+    },
+    "away_team_struct": {
+      "base_offset": "0x04A8F120",
+      "offsets": ["0x18", "0x70", "0x00"]
+    }
+  },
+  "player_struct_offsets": {
+    "condition_float": "0x1A4",
+    "is_booked_byte": "0x1B0",
+    "pace_byte": "0x210",
+    "acceleration_byte": "0x211",
+    "agility_byte": "0x212",
+    "balance_byte": "0x213",
+    "jumping_reach_byte": "0x214",
+    "strength_byte": "0x215",
+    "stamina_byte": "0x216",
+    "dribbling_byte": "0x220",
+    "first_touch_byte": "0x221",
+    "passing_byte": "0x222",
+    "crossing_byte": "0x223",
+    "tackling_byte": "0x224",
+    "marking_byte": "0x225",
+    "heading_byte": "0x226",
+    "flair_byte": "0x227",
+    "off_the_ball_byte": "0x230",
+    "positioning_byte": "0x231",
+    "anticipation_byte": "0x232",
+    "decisions_byte": "0x233",
+    "composure_byte": "0x234",
+    "concentration_byte": "0x235",
+    "aggression_byte": "0x236",
+    "bravery_byte": "0x237"
+  },
+  "notes": "FM 내부 메모리에서 기본 스탯이 1~100 스케일로 저장된 경우 reader.py의 normalize_attr()가 자동으로 1~20 스케일로 변환합니다."
+}
+
